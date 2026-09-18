@@ -6,6 +6,7 @@ Repositorio del curso de Análisis de Algoritmos — Instituto Tecnológico Metr
 
 - **Nombre:** Alvaro Sotelo
 - **Correo:** alvarosotelo55954@outlook.com
+- **Semestre:** 2026-2
 
 ## Estructura del repositorio
 
