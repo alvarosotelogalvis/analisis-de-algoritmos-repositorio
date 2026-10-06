@@ -46,7 +46,7 @@
 
 **Lo que puede mejorar:**
 - Las funciones de `parte3_casos.py` y `parte4_complejidad.py` no tienen *type hints* completos y `main` no tiene *docstring*.
-- Hay detalles de estilo (PEP 8): falta una línea en blanco entre funciones en `algoritmos.py`, importaciones después de código y una línea con espacios al final de `parte4_complejidad.py`.
+- Hay detalles de estilo (PEP 8): falta una línea en blanco entre funciones en `algoritmos.py`, e importaciones después de código.
 
 ## 4. Calidad del análisis de las gráficas (11 / 20)
 **Lo que hizo bien:**
