@@ -4,10 +4,13 @@ Experimento A: mide con time.perf_counter el tiempo medio por busqueda de
 guias inexistentes en la lista y en la tabla (con alfa cercano a 2) para
 varios valores de n, verifica que ambas coinciden y produce
 graficas/lista_vs_tabla.png.
+
+Experimento B: con n fijo, construye tablas con distinto m para variar el
+factor de carga alfa, mide el tiempo medio por busqueda de guias
+inexistentes en cada una y produce graficas/tiempo_vs_alfa.png.
 """
 
 import random
-import statistics
 import time
 from pathlib import Path
 
@@ -19,8 +22,11 @@ import matplotlib.pyplot as plt
 from estructuras import ListaEnlazada, TablaHash
 
 TAMANOS = [100, 500, 1000, 5000, 20000, 50000]
+N_FIJO = 20000
+ALFAS = [0.25, 0.5, 1, 2, 4, 10]
 BUSQUEDAS = 200
 REPETICIONES = 3
+REPETICIONES_TABLA = 51
 MUESTRA_VERIFICACION = 100
 SEMILLA = 2026
 ESTADOS = ["en bodega", "en reparto", "entregado"]
@@ -144,8 +150,9 @@ def medir_busquedas(
 ) -> float:
     """Mide el tiempo medio por busqueda sobre una estructura.
 
-    Cronometra solo el ciclo de busquedas, repite la medicion y toma la
-    mediana para reducir el ruido del sistema operativo.
+    Cronometra solo el ciclo de busquedas, repite la medicion y toma el
+    minimo, que es la repeticion menos afectada por el ruido del sistema
+    operativo.
 
     Args:
         estructura: lista enlazada o tabla hash donde se busca.
@@ -153,7 +160,8 @@ def medir_busquedas(
         repeticiones: cuantas veces se repite la medicion completa.
 
     Returns:
-        La mediana del tiempo medio por busqueda, en segundos.
+        El menor tiempo medio por busqueda entre las repeticiones, en
+        segundos.
     """
     muestras = []
     for _ in range(repeticiones):
@@ -161,7 +169,7 @@ def medir_busquedas(
         for guia in guias:
             estructura.buscar(guia)
         muestras.append((time.perf_counter() - inicio) / len(guias))
-    return statistics.median(muestras)
+    return min(muestras)
 
 
 def graficar_lista_vs_tabla(
@@ -203,7 +211,7 @@ def experimento_a() -> None:
         inexistentes = generar_guias_inexistentes(existentes, BUSQUEDAS)
 
         t_lista = medir_busquedas(lista, inexistentes, REPETICIONES)
-        t_tabla = medir_busquedas(tabla, inexistentes, REPETICIONES)
+        t_tabla = medir_busquedas(tabla, inexistentes, REPETICIONES_TABLA)
         tiempos_lista.append(t_lista)
         tiempos_tabla.append(t_tabla)
         print(
@@ -215,11 +223,62 @@ def experimento_a() -> None:
     print(f"Grafica guardada en {CARPETA_GRAFICAS / 'lista_vs_tabla.png'}")
 
 
+def graficar_tiempo_vs_alfa(alfas: list[float], tiempos: list[float]) -> None:
+    """Dibuja el tiempo medio por busqueda de la tabla frente a alfa.
+
+    Args:
+        alfas: factores de carga medidos.
+        tiempos: tiempo medio por busqueda en cada tabla (s).
+    """
+    microsegundos = [t * 1e6 for t in tiempos]
+    plt.figure(figsize=(8, 5))
+    plt.plot(
+        alfas, microsegundos, marker="s", color="tab:orange",
+        label=f"Tabla hash (n = {N_FIJO})",
+    )
+    plt.xlabel("Factor de carga alfa = n / m (guias por casilla)")
+    plt.ylabel("Tiempo medio por busqueda (microsegundos)")
+    plt.title("Tabla hash: tiempo de busqueda de guias inexistentes vs. alfa")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(CARPETA_GRAFICAS / "tiempo_vs_alfa.png")
+    plt.close()
+
+
+def experimento_b() -> None:
+    """Mide la tabla con n fijo y varios alfa, imprime y guarda la grafica."""
+    envios = generar_envios(N_FIJO)
+    existentes = {guia for guia, _ in envios}
+    inexistentes = generar_guias_inexistentes(existentes, BUSQUEDAS)
+
+    alfas_reales = []
+    tiempos = []
+    print(f"\nExperimento B: efecto del factor de carga (n = {N_FIJO})")
+    print(f"{'alfa obj.':>9} {'m':>6} {'alfa':>6} {'tabla (us)':>12}")
+    for alfa in ALFAS:
+        m = primo_cercano(round(N_FIJO / alfa))
+        lista, tabla = construir_estructuras(envios, m)
+        verificar_coincidencia(lista, tabla, envios)
+
+        t_tabla = medir_busquedas(tabla, inexistentes, REPETICIONES_TABLA)
+        alfas_reales.append(tabla.factor_carga())
+        tiempos.append(t_tabla)
+        print(
+            f"{alfa:>9} {m:>6} {tabla.factor_carga():>6.2f}"
+            f" {t_tabla * 1e6:>12.3f}"
+        )
+
+    graficar_tiempo_vs_alfa(alfas_reales, tiempos)
+    print(f"Grafica guardada en {CARPETA_GRAFICAS / 'tiempo_vs_alfa.png'}")
+
+
 def main() -> None:
     """Ejecuta los experimentos de la Parte 2."""
     if not CARPETA_GRAFICAS.is_dir():
         CARPETA_GRAFICAS.mkdir(parents=True)
     experimento_a()
+    experimento_b()
 
 
 if __name__ == "__main__":
